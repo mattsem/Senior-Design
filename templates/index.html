@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+
+
+
+<head >
+    <title>Music Recommender</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="stylesheet" href="//code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+    <link rel="stylesheet" href="/resources/demos/style.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+    <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+   
+
+    <style>
+        h1 {text-align:center;}
+        h2 {text-align:center}
+        form {text-align:center; font-size: 18px;}
+    </style>
+    
+</head>
+
+<body style= "background-color: darkgray;">
+    <h1 > Finder: A Diverse Music Recommendation System </h1>
+
+    <!--First Third of layout-->
+    <div class = "w3-cell-row">
+        {%if not login%}
+        <div class = "w3-card-4 w3-green w3-cell w3-third w3-text-black">
+        <div class = "w3-container w3-center w3-padding-16">
+            <h2><i class="fa fa-brands fa-spotify"></i> Login to Spotify to view your songs</h2>
+
+            <form action = "login">
+                <input type="submit" value = "Login"/>
+            </form>
+        
+        </div>    
+        </div>
+        {%else%}
+        <div class = "w3-third w3-container w3-green w3-cell w3-text-black">
+        <div class = "w3-container w3-center w3-padding-16">
+            
+            <h2><i class="fa fa-brands fa-spotify"></i> Your Saved Tracks:</h2>
+                <ul class = "w3-ul w3-card-4 w3-hoverable">
+
+                    
+               <!--     <button id = "savedButton" onclick="savedOrTop('saved')">Your Saved Tracks</button>
+                    <button id = "topButton" onclick="savedOrTop('top')">Your Top Tracks</button>
+-->
+                   {%for item in savedTracks["items"] %}
+
+                        <li class = "w3-display-container" onclick= "addSongfromSpot('{{item.songID}}','{{item.name}}','{{item.artist}}') ">{{item.name}} - {{item.artist}}</li>
+                   {%endfor%} 
+
+
+                </ul>
+        </div>
+        </div>    
+        {%endif%}
+    
+    
+<!--Second Third of layout-->
+        <div class = "w3-card-4 w3-cell w3-third">
+        <div class = "w3-container w3-center w3-padding-16">
+            <h2>Select Seed Songs</h3> 
+        
+                <input type = "text" placeholder="Search Songs..." id= "searchbar">
+                <button type = "submit" onclick = "addSong()">Add Song</button>
+            
+            <ul id = "list" class = "w3-ul w3-card-4 w3-hoverable">
+            
+            </ul>
+
+               <button type="submit"  onclick = "submitSeeds()" >Create Custom Playlist</button>
+            
+        </div>
+        </div>
+
+
+    <!--Third of layout-->
+        <div class = "w3-card-4 w3-cell w3-third">
+        <div class = "w3-container w3-center w3-padding-16">
+            <h3>Recommended Songs For You:</h3>
+            
+            <ul id = "recommended" class="w3-ul w3-card-4 w3-hoverable"></ul>
+
+        </div>
+        </div>
+    
+
+
+    </div>
+
+    <!-- Song data popup -->
+    <div id="popup" class="w3-modal" >
+        <div class="w3-modal-content w3-animate-top" style="width: 600px">
+        <div class="w3-container w3-center">
+        <span onclick="document.getElementById('popup').style.display='none'"class="w3-button w3-display-topright">&times;</span>
+        <h2></h2>
+        <div id = "song-data" style = "padding-bottom: 16px;" ></div>
+        </div>
+        </div>
+    </div>
+
+
+
+
+</body>
+
+<!--JavaScript for Seachbar autofill-->
+<script>
+
+/*
+    $("#searchbar").on('keyup',function(e){
+        value = $("#searchbar").val()
+        console.log(value)
+        $('#searchbar').attr('autocomplete','on')
+        $('#searchbar').autocomplete({
+            source: function(request,response){
+                $.ajax({
+                    url: "{{url_for('search')}}?search=" + request.term,
+                    success: function(data){
+                        data = JSON.parse(data)
+                        console.log(data)
+                        response($.map(data,function(item){
+                            return{
+                                label: item.name, 
+                                value: item.name
+                            }
+                        })) 
+                    }
+                })
+
+            }
+            
+        })
+    })
+*/
+    function addSong(){
+
+        var value = $('#searchbar').val();
+
+
+        $.ajax({
+            url: "/search",
+            method: "GET",
+            data: {search : value},
+            success: function(response){
+                console.log(response)
+
+                var track = response;
+
+                console.log(track)
+        
+                var id = track['id']
+                console.log(id)
+                
+                var li = document.createElement("li")
+                li.classList.add("w3-container")
+                li.id = id   
+                li.textContent = track['name'] + " - " + track['artists'][0]['name']
+                li.addEventListener("click", createEventListener(id));
+
+                var button = document.createElement("button")
+                button.classList.add("w3-button")
+                button.classList.add("w3-right")
+    
+                button.innerHTML = "&times;"
+
+                button.addEventListener("click",function(event){
+                    event.stopPropagation();
+                    li.remove()
+                })
+                li.appendChild(button)
+
+                
+                document.getElementById("list").appendChild(li)
+            },
+            error: function(error){
+                console.log(error)
+            }
+        });
+    }
+
+
+    function savedOrTop(savedOrTop){
+        fetch('/savedOrTop?savedOrTop=' + savedOrTop, {
+            method: 'GET',
+        })
+    }
+
+
+    function addSongfromSpot(songID,songName,songArtist){
+        
+        var id = songID
+        var text = songName + " - " + songArtist
+        
+
+        var li = document.createElement("li")
+        li.classList.add("w3-container")
+        li.textContent = text
+        li.id = id 
+        li.addEventListener("click", createEventListener(id));
+
+        var button = document.createElement("button")
+        button.classList.add("w3-button")
+        button.classList.add("w3-right")
+    
+        button.innerHTML = "&times;"
+
+        button.addEventListener("click",function(event){
+            event.stopPropagation();
+            li.remove()
+        })
+        li.appendChild(button)
+        
+        document.getElementById("list").appendChild(li)
+
+    }
+
+    function submitSeeds(){
+        var seedList = []
+        
+        var liElements = document.getElementById("list").getElementsByTagName("li")
+
+        console.log(liElements)
+        console.log(liElements[0].id)
+        for(var i=0;i<liElements.length;i++){
+            seedList.push(liElements[i].id);
+        }
+
+        console.log("hi")
+
+        console.log(seedList)
+
+        fetch('/createPlaylist', {
+            method: 'POST',
+            headers:{
+                'Content-Type': 'application/json'   
+            },
+            body: JSON.stringify({ seedList: seedList })
+        })
+        .then(response => {
+        if (response.ok) {
+            console.log('SeedList sent successfully!');
+            return response.json()
+        } else {
+            console.error('Error sending seedList.');
+        }
+        })
+        .then(recommendedList => {
+                for(var i = 0; i < recommendedList.length; i++) {
+                    
+                    var li = document.createElement("li");
+                    li.classList.add("w3-container");
+
+
+                    var id = recommendedList[i].id;
+                    li.textContent = recommendedList[i].name + " - " + recommendedList[i].artists.replace('[','').replace(']','');
+
+                    li.addEventListener("click", createEventListener(id));
+                    
+                    document.getElementById("recommended").appendChild(li)
+    
+                };
+        
+        })
+        .catch(error => {
+            console.error('Error sending seedList:', error);
+        });
+    }
+
+
+
+    function createEventListener(id){
+        return function() {
+        fetch('/retrieveSongData', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({id})
+        })
+        .then(response => {
+            if (response.ok) {
+                console.log('SongID sent');
+                return response.json();
+            } else {
+                console.error('Error retrieving song features.');
+            }
+        })
+        .then(songData => {
+            console.log(songData);
+            var popup = document.getElementById('popup');
+            var title = popup.querySelector('h2');
+            title.textContent = songData[1] + ' - ' + songData[2];
+
+
+            /*content = JSON.stringify(songData[0], null, 4);*/
+
+            content = songData[0]
+
+            var relevant_cols = ['danceability', 'energy', 'loudness', 'speechiness', 'acousticness', 'instrumentalness', 'liveness', 'valence', 'tempo'];
+            let html = '';
+
+            for (const key of relevant_cols) {
+                html += `<strong>${key}:</strong> ${songData[0][key]}<br>`;    
+            }
+            document.getElementById('song-data').innerHTML = html;
+
+            popup.style.display='block';
+        })
+        .catch(error => {
+            console.error('Error retrieving song features:', error);
+        });
+        };
+
+    }
+
+</script>

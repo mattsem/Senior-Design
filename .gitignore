@@ -1,0 +1,7 @@
+tracks.csv
+.cache
+__pycache__/
+a.json
+savedTracks.json
+Spotify_Recommender
+keys.txt
